@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>전자책 OTT 통합 검색기</title>
+  <style>
+    body {
+      font-family: "Noto Sans KR", sans-serif;
+      background: #f4f4f4;
+      padding: 30px;
+      max-width: 800px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      margin-bottom: 20px;
+      box-sizing: border-box;
+    }
+    .platforms {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .platforms label {
+      flex: 1 1 45%;
+    }
+    button {
+      background-color: #0078D7;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    .results {
+      margin-top: 30px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #eee;
+      padding: 8px 0;
+    }
+    .result-row input[type="checkbox"] {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>전자책 통합 검색기</h1>
+  <input type="text" id="bookTitle" placeholder="책 제목을 입력하세요">
+  <div class="platforms" id="platformList"></div>
+  <button onclick="searchBooks()">검색하기</button>
+  <div class="results" id="results"></div>
+  <button onclick="openSelected()" id="openAllBtn" style="display:none">선택한 항목 모두 열기</button>
+
+  <script>
+    const platforms = {
+      "리디셀렉트": {
+        url: "https://select.ridibooks.com/search?q={query}&type=Books",
+        marker: "class=\"book_card\""
+      },
+      "예스24 크레마클럽": {
+        url: "https://cremaclub.yes24.com/BookClub/Search?query={query}",
+        marker: "class=\"itemUnit\""
+      },
+      "알라딘 (eBook)": {
+        url: "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Ebook&SearchWord={query}",
+        marker: "class=\"ss_book_box\""
+      },
+      "교보 eBook": {
+        url: "https://search.kyobobook.co.kr/search?keyword={query}&gbCode=EBK&target=ebook",
+        marker: "class=\"prod_item\""
+      },
+      "서울도서관 전자책": {
+        url: "https://elib.seoul.go.kr/contents/search/content?t=EB&k={query}",
+        marker: "class=\"ebook_cover\""
+      },
+      "가톨릭대 전자도서관": {
+        url: "https://ebooks.catholic.ac.kr/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt={query}",
+        marker: "class=\"book_resultList\""
+      }
+    };
+
+    const platformList = document.getElementById('platformList');
+    const resultsDiv = document.getElementById('results');
+    const openAllBtn = document.getElementById('openAllBtn');
+
+    for (const name in platforms) {
+      const id = name.replace(/\s+/g, '');
+      const label = document.createElement('label');
+      label.innerHTML = `<input type="checkbox" id="${id}" checked> ${name}`;
+      platformList.appendChild(label);
+    }
+
+    let selectedResults = [];
+
+    async function searchBooks() {
+      const query = document.getElementById('bookTitle').value.trim();
+      if (!query) {
+        alert('책 제목을 입력해주세요.');
+        return;
+      }
+      resultsDiv.innerHTML = '';
+      openAllBtn.style.display = 'none';
+      selectedResults = [];
+
+      const encoded = encodeURIComponent(query);
+
+      for (const name in platforms) {
+        const id = name.replace(/\s+/g, '');
+        if (!document.getElementById(id).checked) continue;
+
+        const info = platforms[name];
+        const url = info.url.replace('{query}', encoded);
+        let resultText = '결과 수 확인 불가';
+
+        try {
+          const response = await fetch(url);
+          const html = await response.text();
+          if (info.marker) {
+            const count = html.split(info.marker).length - 1;
+            resultText = `${count}건`;
+          }
+        } catch (e) {
+          resultText = '접속 실패';
+        }
+
+        const row = document.createElement('div');
+        row.className = 'result-row';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = !resultText.includes('0건');
+        checkbox.dataset.url = url;
+
+        const label = document.createElement('span');
+        label.innerText = `${name} (${resultText})`;
+
+        const openBtn = document.createElement('button');
+        openBtn.textContent = '이동';
+        openBtn.onclick = () => window.open(url, '_blank');
+
+        row.appendChild(checkbox);
+        row.appendChild(label);
+        row.appendChild(openBtn);
+
+        resultsDiv.appendChild(row);
+        selectedResults.push(checkbox);
+      }
+
+      if (selectedResults.length > 0) {
+        openAllBtn.style.display = 'block';
+      }
+    }
+
+    function openSelected() {
+      selectedResults.forEach(cb => {
+        if (cb.checked) {
+          window.open(cb.dataset.url, '_blank');
+        }
+      });
+    }
+  </script>
+</body>
+</html>
