@@ -2,122 +2,62 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>전자책 통합 검색기 v2 (리팩터링)</title>
+  <title>전자책 통합 검색기</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- 디자인: B 스타일 기준 (폰트, 버튼, 배경 등) -->
   <style>
-  /* 기본 스타일 유지 */
-  body { font-family: "Noto Sans KR", sans-serif; background: #f4f4f4; padding: 30px; max-width: 800px; margin: auto; }
-  h1 { text-align: center; color: #333; margin-bottom: 20px; }
-
-  .search-container {
-    position: relative;       /* 추가된 부분 */
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 20px;
-  }
-  .search-container select,
-  .search-container input[type="text"],
-  .search-container button {
-    padding: 10px;
-    font-size: 16px;
-  }
-  .search-container select { width: 140px; }
-  .search-container input[type="text"] { flex: 1; box-sizing: border-box; }
-  .search-container button {
-    background: #0078D7;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-    border-radius: 4px;
-  }
-
-  .platforms { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
-  .platforms label { flex: 1 1 45%; }
-
-  .results {
-    margin-top: 30px;
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    position: relative;
-  }
-  .result-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #eee;
-    padding: 8px 0;
-  }
-  .result-row input[type="checkbox"] { margin-right: 10px; }
-
-  #spinner {
-    display: none;
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 40px; height: 40px;
-  }
-  #spinner .spinner {
-    width: 100%; height: 100%;
-    border: 4px solid rgba(0,0,0,0.1);
-    border-top-color: #333;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  @media (max-width: 800px) {
-    .platforms { flex-direction: column; }
-    .search-container { flex-direction: column; align-items: stretch; }
-    .search-container select,
-    .search-container input,
-    .search-container button { width: 100%; }
-  }
-
-  /* 커스텀 자동완성 스타일 */
-  .autocomplete-items {
-    position: absolute;
-    border: 1px solid #d4d4d4;
-    border-top: none;
-    z-index: 99;
-    top: calc(100% + 2px);
-    left: 0; right: 0;
-    background: #fff;
-    max-height: 240px;
-    overflow-y: auto;
-  }
-  .autocomplete-items div {
-    padding: 10px;
-    cursor: pointer;
-  }
-  .autocomplete-items div:hover {
-    background-color: #e9e9e9;
-  }
-  .autocomplete-active {
-    background-color: #0078D7 !important;
-    color: #fff;
-  }
+    body { font-family: "Noto Sans KR", sans-serif; background: #f4f4f4; padding: 30px; max-width: 800px; margin: auto; }
+    h1 { text-align: center; color: #333; margin-bottom: 20px; }
+    .search-container { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+    .search-container select, .search-container input[type="text"] { padding: 10px; font-size: 16px; }
+    .search-container select { width: 140px; }
+    .search-container input[type="text"] {
+  flex: 3;              /* ← 더 넓게 차지하게 함 */
+  min-width: 350px;     /* ← 최소 350px */
+  width: 100%;          /* ← 영역 전체 사용 */
+  box-sizing: border-box;
+}
+    .search-container button { padding: 10px 20px; font-size: 16px; background: #0078D7; color: #fff; border: none; cursor: pointer; border-radius: 4px; }
+    .platforms { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+    .platforms label { flex: 1 1 45%; }
+    .results { margin-top: 30px; background: white; padding: 20px; border-radius: 8px; position: relative; }
+    .result-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 8px 0; }
+    .result-row input[type="checkbox"] { margin-right: 10px; }
+    #spinner { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; }
+    #spinner .spinner { width: 100%; height: 100%; border: 4px solid rgba(0,0,0,0.1); border-top-color: #333; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 800px) { .platforms { flex-direction: column; } .search-container { flex-direction: column; align-items: stretch; } .search-container select, .search-container input, .search-container button { width: 100%; } }
+    /* 자동완성 영역 디자인 */
+    .autocomplete-container { position: relative; width: 100%; }
+    #autocomplete-list {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: white; border: 1px solid #eee; z-index: 10;
+      border-radius: 0 0 8px 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      max-height: 250px; overflow-y: auto; font-size: 15px;
+    }
+    .autocomplete-item { padding: 10px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+    .autocomplete-item:hover, .autocomplete-active { background: #e8f0fe; }
+    .autocomplete-cover { width: 35px; height: 48px; object-fit: cover; border-radius: 4px; background: #f5f5f5; }
+    .autocomplete-title { font-weight: bold; color: #222; }
+    .autocomplete-author { font-size: 12px; color: #666; }
   </style>
 </head>
 <body>
-  <h1>전자책 통합 검색기 v2 (리팩터링)</h1>
-
+  <h1>전자책 통합 검색기</h1>
   <div class="search-container">
     <select id="searchTypeSelect">
-      <option value="both" selected>통합검색</option>
+      <option value="both">제목+저자</option>
       <option value="title">책 제목</option>
       <option value="author">작가 이름</option>
     </select>
-    <input
-  type="text"
-  id="bookTitle"
-  placeholder="검색어를 입력하세요"
-  autocomplete="off"
-/> <!-- 브라우저 기본 자동완성 끄기 -->
-<div id="autocomplete-list" class="autocomplete-items"></div>
-    <button id="searchBtn">검색</button>
-    <button id="btnReset">처음으로</button>
+    <div style="flex:1; position:relative;">
+      <input type="text" id="bookTitle" placeholder="도서명 또는 저자명을 입력하세요..." autocomplete="off" />
+      <div class="autocomplete-container">
+        <div id="autocomplete-list"></div>
+      </div>
+    </div>
+    <button id="searchBtn" style="margin-left:8px;">검색</button>
+    <button id="btnReset" style="margin-left:8px; background:#eee; color:#555;">초기화</button>
   </div>
 
   <div class="platforms" id="platformList"></div>
@@ -137,84 +77,60 @@
   </div>
 
   <script>
-    // 플랫폼 설정
- const platforms = {
-  "리디셀렉트": {
-    titleUrl:  "https://select.ridibooks.com/search?q={query}&type=Books",
-    authorUrl: "https://select.ridibooks.com/search?q={query}&type=Books",
-    bothUrl:   "https://select.ridibooks.com/search?q={query}&type=Books",  // 통합검색
-    marker:    "class=\"book_card\""
-  },
-  "예스24 크레마클럽": {
-    titleUrl:  "https://cremaclub.yes24.com/BookClub/Search?query={query}&page=1&_searchTarget=TITLE",
-    authorUrl: "https://cremaclub.yes24.com/BookClub/Search?query={query}&page=1&_searchTarget=AUTHOR",
-    bothUrl:   "https://cremaclub.yes24.com/BookClub/Search?query={query}",  // 통합검색
-    marker:    "class=\"itemUnit\""
-  },
-  "알라딘 eBook": {
-  // 통합검색: 대문자 B 사용
-  bothUrl:
-    "https://www.aladin.co.kr/search/wsearchresult.aspx?" +
-    "SearchTarget=EBook&SearchWord={query}",
-
-  // 제목 검색: 원본과 동일하게 소문자 b
-  titleUrl:
-    "https://www.aladin.co.kr/search/wsearchresult.aspx?" +
-    "SearchTarget=Ebook&KeyWord=&KeyRecentPublish=0&OutStock=0&" +
-    "ViewType=Detail&SortOrder=11&CustReviewCount=0&CustReviewRank=0&" +
-    "KeyFullWord={query}&KeyLastWord={query}&CategorySearch=&" +
-    "chkKeyTitle=on&chkKeyAuthor=&chkKeyPublisher=&chkKeyISBN=&" +
-    "chkKeyTag=&chkKeyTOC=&chkKeySubject=&ViewRowCount=25&" +
-    "SuggestKeyWord=&SearchFieldEnable=1",
-
-  // 작가 검색: 원본과 동일
-  authorUrl:
-    "https://www.aladin.co.kr/search/wsearchresult.aspx?" +
-    "SearchTarget=Ebook&KeyTitle=&KeyRecentPublish=0&OutStock=0&" +
-    "ViewType=Detail&SortOrder=11&CustReviewCount=0&CustReviewRank=0&" +
-    "KeyFullWord={query}&KeyLastWord={query}&SearchFieldEnable=1&" +
-    "KeyWord=&CategorySearch=&chkKeyTitle=&chkKeyAuthor=on&" +
-    "chkKeyPublisher=&chkKeyISBN=&chkKeyTag=&chkKeyTOC=&" +
-    "chkKeySubject=&ViewRowCount=25&SuggestKeyWord=",
-
-  marker: "<div class=\"ss_book_box\""
-},
-
-
-  "교보 eBook": {
-    titleUrl:  "https://search.kyobobook.co.kr/search?keyword={query}&target=ebook&gbCode=EBK&cname={query}",
-    authorUrl: "https://search.kyobobook.co.kr/search?keyword={query}&target=ebook&gbCode=EBK&chrc={query}",
-    bothUrl:   "https://search.kyobobook.co.kr/search?keyword={query}&gbCode=EBK&target=ebook",  // 통합검색
-    marker:    "<li class=\"prod_item\""
-  },
-  "서울도서관 전자도서관": {
-    titleUrl:  "https://elib.seoul.go.kr/contents/search/content?t=EB&k={query}",
-    authorUrl: "https://elib.seoul.go.kr/contents/search/content?t=EB&k={query}",
-    bothUrl:   "https://elib.seoul.go.kr/contents/search/content?t=EB&k={query}",  // 통합검색
-    marker:    "<ul class=\"book_resultList\""
-  },
-  "가톨릭대학교 전자도서관": {
-    titleUrl:  "https://ebooks.catholic.ac.kr/elibrary-front/search/searchList.ink?schClst=ctts&schTxt={query}&recordCount=20",
-    authorUrl: "https://ebooks.catholic.ac.kr/elibrary-front/search/searchList.ink?schClst=autr&schTxt={query}&recordCount=20",
-    bothUrl:   "https://ebooks.catholic.ac.kr/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&schTxt={query}",  // 통합검색
-    marker:    "<ul class=\"book_resultList\""
-  }
-};
-
-    // DOM 참조
-    const platformList       = document.getElementById('platformList');
-    const resultsContainer   = document.getElementById('results');
-    const resultControls     = document.getElementById('resultControls');
-    const spinner            = document.getElementById('spinner');
-    const searchBtn          = document.getElementById('searchBtn');
-    const selectAllBtn       = document.getElementById('selectAllBtn');
-    const deselectAllBtn     = document.getElementById('deselectAllBtn');
-    const selectResultsBtn   = document.getElementById('selectAllResultsBtn');
+    // 플랫폼 목록
+    const platforms = {
+      "리디셀렉트": {
+        titleUrl: "https://select.ridibooks.com/search?q={query}&type=Books",
+        authorUrl: "https://select.ridibooks.com/search?q={query}&type=Books",
+        bothUrl: "https://select.ridibooks.com/search?q={query}&type=Books",
+        marker: "class=\"book_card\""
+      },
+      "예스24 크레마클럽": {
+        titleUrl: "https://cremaclub.yes24.com/BookClub/Search?query={query}&page=1&_searchTarget=TITLE",
+        authorUrl: "https://cremaclub.yes24.com/BookClub/Search?query={query}&page=1&_searchTarget=AUTHOR",
+        bothUrl: "https://cremaclub.yes24.com/BookClub/Search?query={query}",
+        marker: "class=\"itemUnit\""
+      },
+      "알라딘 eBook": {
+        bothUrl: "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord={query}",
+        titleUrl: "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Ebook&KeyWord=&KeyRecentPublish=0&OutStock=0&ViewType=Detail&SortOrder=11&CustReviewCount=0&CustReviewRank=0&KeyFullWord={query}&KeyLastWord={query}&CategorySearch=&chkKeyTitle=on&chkKeyAuthor=&chkKeyPublisher=&chkKeyISBN=&chkKeyTag=&chkKeyTOC=&chkKeySubject=&ViewRowCount=25&SuggestKeyWord=&SearchFieldEnable=1",
+        authorUrl: "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Ebook&KeyTitle=&KeyRecentPublish=0&OutStock=0&ViewType=Detail&SortOrder=11&CustReviewCount=0&CustReviewRank=0&KeyFullWord={query}&KeyLastWord={query}&SearchFieldEnable=1&KeyWord=&CategorySearch=&chkKeyTitle=&chkKeyAuthor=on&chkKeyPublisher=&chkKeyISBN=&chkKeyTag=&chkKeyTOC=&chkKeySubject=&ViewRowCount=25&SuggestKeyWord=",
+        marker: "<div class=\"ss_book_box\""
+      },
+      "교보 eBook": {
+        titleUrl: "https://search.kyobobook.co.kr/search?keyword={query}&target=ebook&gbCode=EBK&cname={query}",
+        authorUrl: "https://search.kyobobook.co.kr/search?keyword={query}&target=ebook&gbCode=EBK&chrc={query}",
+        bothUrl: "https://search.kyobobook.co.kr/search?keyword={query}&gbCode=EBK&target=ebook",
+        marker: "<li class=\"prod_item\""
+      },
+      "서울도서관 전자도서관": {
+        titleUrl: "https://elib.seoul.go.kr/contents/search/content?t=EB&k={query}",
+        authorUrl: "https://elib.seoul.go.kr/contents/search/content?t=EB&k={query}",
+        bothUrl: "https://elib.seoul.go.kr/contents/search/content?t=EB&k={query}",
+        marker: "<ul class=\"book_resultList\""
+      },
+      "가톨릭대학교 전자도서관": {
+        titleUrl: "https://ebooks.catholic.ac.kr/elibrary-front/search/searchList.ink?schClst=ctts&schTxt={query}&recordCount=20",
+        authorUrl: "https://ebooks.catholic.ac.kr/elibrary-front/search/searchList.ink?schClst=autr&schTxt={query}&recordCount=20",
+        bothUrl: "https://ebooks.catholic.ac.kr/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&schTxt={query}",
+        marker: "<ul class=\"book_resultList\""
+      }
+    };
+    // 주요 DOM
+    const platformList = document.getElementById('platformList');
+    const resultsDiv = document.getElementById('results');
+    const resultControls = document.getElementById('resultControls');
+    const spinner = document.getElementById('spinner');
+    const searchBtn = document.getElementById('searchBtn');
+    const btnReset = document.getElementById('btnReset');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const deselectAllBtn = document.getElementById('deselectAllBtn');
+    const selectResultsBtn = document.getElementById('selectAllResultsBtn');
     const deselectResultsBtn = document.getElementById('deselectResultsBtn');
-    const openSelectedBtn    = document.getElementById('openSelectedBtn');
-    let checkboxes = [];
+    const openSelectedBtn = document.getElementById('openSelectedBtn');
+    let selectedResults = [];
 
-    // 1) 플랫폼 체크박스 생성
+    // 플랫폼 체크박스 생성
     Object.keys(platforms).forEach(name => {
       const id = name.replace(/\s+/g, '');
       const label = document.createElement('label');
@@ -222,235 +138,177 @@
       platformList.appendChild(label);
     });
 
-    // 2) placeholder 변경 처리
-    document.getElementById('searchTypeSelect').addEventListener('change', function() {
-      const mode = this.value;
-      const placeholderText = mode === 'title'
-        ? '책 제목을 입력하세요'
-        : mode === 'author'
-          ? '작가 이름을 입력하세요'
-          : '검색어를 입력하세요';
-      document.getElementById('bookTitle').placeholder = placeholderText;
-    });
+    // 플랫폼 전체 선택/해제
+    selectAllBtn.onclick = () => platformList.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+    deselectAllBtn.onclick = () => platformList.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
 
-    // 3) HTML fetch 함수
-    async function fetchViaProxy(url) {
-      const response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url));
-      if (!response.ok) throw new Error(`네트워크 오류: ${response.status}`);
-      return response.text();
-    }
-
-    // 4) 결과 카운트 파싱 함수
-   function parseCount(siteName, html) {
-    switch (siteName) {
-      case '교보 eBook': {
-        // 1) class 속성 뒤 추가 속성 허용
-        // 2) <b> 태그 역시 속성 허용
-        const m = html.match(
-          /<p\s+class=["']result_count["'][^>]*>[\s\S]*?<b[^>]*>([\d,]+)<\/b>/
-        );
-        return m ? Number(m[1].replace(/,/g, '')) : 0;
-      }
-      case '예스24 크레마클럽': {
-        const m = html.match(/상품\s*\(\s*([\d,]+)\s*\)/);
-        return m ? Number(m[1].replace(/,/g, '')) : 0;
-      }
-      case '알라딘 eBook': {
-        const m = html.match(/<span\s+class=["']ss_f_g_l["'][^>]*>([\d,]+)<\/span>/);
-        return m ? Number(m[1].replace(/,/g, '')) : 0;
-      }
-      case '서울도서관 전자도서관': {
-        let m = html.match(/<h2[^>]*id=["']ebookC["'][\s\S]*?<span>\(\s*(\d+)\s*건\)<\/span>/i);
-        if (!m) {
-          m = html.match(/"[^"]+"에 대한 검색결과\s*:\s*총\s*(\d+)\s*건/i);
+    // 검색 기능
+    async function fetchViaProxy(url, retries = 3) {
+      // server.js에서 proxy endpoint(/api/proxy) 사용 전제
+      const proxy = '/api/proxy?url=' + encodeURIComponent(url);
+      for (let i = 0; i < retries; i++) {
+        try {
+          const res = await fetch(proxy);
+          if (!res.ok) throw new Error(res.status);
+          return await res.text();
+        } catch (e) {
+          if (i === retries - 1) throw e;
+          await new Promise(r => setTimeout(r, 300));
         }
-        return m ? Number(m[1].replace(/,/g, '')) : 0;
-      }
-      case '가톨릭대학교 전자도서관': {
-        const m = html.match(/<strong>\s*총\s*([\d,]+)개<\/strong>/);
-        return m ? Number(m[1].replace(/,/g, '')) : 0;
-      }
-      default: {
-        const marker = platforms[siteName].marker || '';
-        return html.split(marker).length - 1;
       }
     }
-  }
 
-    // ───────── 5) 검색 처리 (수정본) ─────────
-async function searchBooks() {
-  const query = document.getElementById('bookTitle').value.trim();
-  const mode  = document.getElementById('searchTypeSelect').value;
-  if (!query) {
-    alert('검색어를 입력해주세요.');
-    return;
-  }
-
-  // UI 초기화
-  resultsContainer.querySelectorAll('.result-row').forEach(el => el.remove());
-  checkboxes = [];
-  resultControls.style.display = 'none';
-  spinner.style.display = 'block';
-
-  const encodedQuery = encodeURIComponent(query);
-  const enabledSites = Object.keys(platforms).filter(name =>
-    document.getElementById(name.replace(/\s+/g, '')).checked
-  );
-
-  // 1) 각 사이트별 fetch 실패 시에도 { site, error, url } 형태로 리턴하도록 catch 추가
-  const results = await Promise.allSettled(
-    enabledSites.map(site => {
-      const tpl = mode === 'title'
-                ? platforms[site].titleUrl
-                : mode === 'author'
-                  ? platforms[site].authorUrl
-                  : platforms[site].bothUrl;
-      const url = tpl.replaceAll('{query}', encodedQuery);
-      return fetchViaProxy(url)
-        .then(html => ({ site, html, url }))
-        .catch(error => ({ site, error, url }));
-    })
-  );
-
-  spinner.style.display = 'none';
-
-  // 2) 결과 렌더링
-  results.forEach(res => {
-    // res.value 가 catch 에서 만든 객체이거나 then() 결과
-    const { site, url, html, error } = res.value || res;
-
-    let labelText, count = 0;
-    if (error || res.status === 'rejected') {
-      // 네트워크/프록시 오류
-      labelText = `${site} (오류)`;
-    } else {
-      // 정상 HTML 파싱
-      count = parseCount(site, html);
-      labelText = `${site} (${count.toLocaleString()}건)`;
+    function parseCount(site, html) {
+      switch (site) {
+        case '교보 eBook':
+          const m = html.match(/<p\s+class=["']result_count["'][^>]*>[\s\S]*?<b[^>]*>([\d,]+)<\/b>/);
+          return m ? +m[1].replace(/,/g, '') : 0;
+        case '예스24 크레마클럽':
+          const m2 = html.match(/상품\s*\(\s*([\d,]+)\s*\)/);
+          return m2 ? +m2[1].replace(/,/g, '') : 0;
+        case '알라딘 eBook':
+          const m3 = html.match(/<span\s+class=["']ss_f_g_l["'][^>]*>([\d,]+)<\/span>/);
+          return m3 ? +m3[1].replace(/,/g, '') : 0;
+        case '가톨릭대학교 전자도서관':
+          const m4 = html.match(/<strong>\s*총\s*([\d,]+)개<\/strong>/);
+          return m4 ? +m4[1].replace(/,/g, '') : 0;
+        default:
+          return html.split(platforms[site].marker || '').length - 1;
+      }
     }
 
-    const row = document.createElement('div');
-    row.className = 'result-row';
+    async function searchMultiPlatformBooks() {
+      const q = document.getElementById('bookTitle').value.trim();
+      const mode = document.getElementById('searchTypeSelect').value;
+      if (!q) {
+        alert(mode === 'author' ? '작가 이름을 입력해주세요.' : '책 제목 또는 저자명을 입력해주세요.');
+        return;
+      }
+      resultsDiv.querySelectorAll('.result-row').forEach(el => el.remove());
+      selectedResults = [];
+      resultControls.style.display = 'none';
+      spinner.style.display = 'block';
 
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.dataset.url = url;
-    cb.checked = !error && count > 0;
-    checkboxes.push(cb);
-
-    const lbl = document.createElement('span');
-    lbl.innerText = labelText;
-
-    const btn = document.createElement('button');
-    btn.innerText = '이동';
-    btn.addEventListener('click', () => window.open(url, '_blank'));
-
-    row.append(cb, lbl, btn);
-    resultsContainer.appendChild(row);
-  });
-
-  if (checkboxes.length) {
-    resultControls.style.display = 'block';
-  }
-}
-// ────────────────────────────────────────────
-
-// ───────── 자동완성(API) + 커스텀 드롭다운 로직 ─────────
-const ALADIN_TTBKEY = 'ttbkuygjmhu2209001';
-
-  async function fetchAladinSuggestions(query) {
-    const endpoint =
-      `https://www.aladin.co.kr/ttb/api/GraphicalSearch.aspx`
-      + `?ttbkey=${ALADIN_TTBKEY}`
-      + `&Query=${encodeURIComponent(query)}`
-      + `&QueryType=Keyword`
-      + `&MaxResults=10`
-      + `&output=js`
-      + `&Version=20131101`;
-    const html = await fetchViaProxy(endpoint);
-    const json = JSON.parse(
-      html.replace(/^[^(]*\(/, '').replace(/\);?$/, '')
-    );
-    return json.item.map(i => i.title);
-  }
-
-  (function() {
-    const input = document.getElementById('bookTitle');
-    const list  = document.getElementById('autocomplete-list');
-    let currentFocus = -1;
-
-    // 1) 입력 시마다 제안어 목록 갱신
-    input.addEventListener('input', async function() {
-      const val = this.value.trim();
-      list.innerHTML = '';
-      currentFocus = -1;
-      if (val.length < 2) return;
-
-      const suggestions = await fetchAladinSuggestions(val);
-      suggestions.forEach(word => {
-        const item = document.createElement('div');
-        item.innerHTML = `<strong>${word.substr(0, val.length)}</strong>${word.substr(val.length)}`;
-        item.addEventListener('click', () => {
-          input.value = word;
-          list.innerHTML = '';
-        });
-        list.appendChild(item);
+      const enabled = Object.keys(platforms).filter(name => {
+        const cb = document.getElementById(name.replace(/\s+/g, ''));
+        return cb && cb.checked;
       });
-    });
+      const enc = encodeURIComponent(q);
+      const tasks = enabled.map(site => {
+        let urlTpl = mode === 'title' ? platforms[site].titleUrl
+              : mode === 'author' ? platforms[site].authorUrl
+              : platforms[site].bothUrl;
+        const url = urlTpl.replaceAll('{query}', enc);
 
-    // 2) 키보드 네비게이션 (↑↓, Enter)
-    input.addEventListener('keydown', function(e) {
-      const items = list.getElementsByTagName('div');
-      if (!items.length) return;
+        return fetchViaProxy(url).then(html => ({
+          name: site,
+          url,
+          count: parseCount(site, html)
+        })).catch(() => ({ name: site, url, count: -1 }));
+      });
 
-      if (e.key === 'ArrowDown') {
-        currentFocus++;
-        addActive(items);
-      } else if (e.key === 'ArrowUp') {
-        currentFocus--;
-        addActive(items);
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (currentFocus > -1) items[currentFocus].click();
-      }
-    });
-
-    function addActive(items) {
-      removeActive(items);
-      if (currentFocus >= items.length) currentFocus = 0;
-      if (currentFocus < 0) currentFocus = items.length - 1;
-      items[currentFocus].classList.add('autocomplete-active');
-      items[currentFocus].scrollIntoView({ block: 'nearest' });
+      const results = await Promise.all(tasks);
+      spinner.style.display = 'none';
+      results.forEach(r => {
+        const row = document.createElement('div'); row.className = 'result-row';
+        const cb = document.createElement('input'); cb.type = 'checkbox'; cb.dataset.url = r.url; cb.checked = r.count > 0;
+        const lbl = document.createElement('span'); lbl.innerText = r.count >= 0
+          ? `${r.name} (${r.count.toLocaleString()}건)` : `${r.name} (오류)`;
+        const btn = document.createElement('button'); btn.textContent = '이동'; btn.onclick = () => window.open(r.url, '_blank');
+        row.append(cb, lbl, btn);
+        resultsDiv.appendChild(row);
+        if (r.url) selectedResults.push(cb);
+      });
+      if (selectedResults.length) resultControls.style.display = 'block';
     }
-    function removeActive(items) {
-      Array.from(items).forEach(i => i.classList.remove('autocomplete-active'));
-    }
 
-    // 3) 외부 클릭 시 목록 닫기
-    document.addEventListener('click', function(e) {
-      if (e.target !== input) list.innerHTML = '';
+    selectResultsBtn.onclick = () => selectedResults.forEach(cb => cb.checked = true);
+    deselectResultsBtn.onclick = () => selectedResults.forEach(cb => cb.checked = false);
+    openSelectedBtn.onclick = () => selectedResults.forEach(cb => cb.checked && window.open(cb.dataset.url, '_blank'));
+    btnReset.onclick = () => location.reload();
+    searchBtn.onclick = searchMultiPlatformBooks;
+
+    // 자동완성 (알라딘 API)
+    const autocompleteInp = document.getElementById('bookTitle');
+    const autocompleteList = document.getElementById('autocomplete-list');
+    let autocompleteFocus = -1;
+
+    autocompleteInp.addEventListener('input', async function () {
+      const v = this.value.trim();
+      autocompleteList.innerHTML = '';
+      autocompleteFocus = -1;
+      if (v.length < 2) return;
+
+      const params = new URLSearchParams({
+        query: v,
+        queryType: 'Keyword',
+        maxResults: 8,
+        start: 1,
+        searchTarget: 'eBook',
+        cover: 'Mid'
+      });
+
+      try {
+        const response = await fetch(`/api/search?${params}`);
+        const data = await response.json();
+        if (!data.success || !data.items) return;
+        data.items.forEach(item => {
+          const d = document.createElement('div');
+          d.className = 'autocomplete-item';
+          d.innerHTML = `
+            <img src="${item.cover || 'https://via.placeholder.com/45x64?text=No+Image'}" alt="${item.title}" class="autocomplete-cover" onerror="this.src='https://via.placeholder.com/45x64?text=No+Image'">
+            <div>
+              <div class="autocomplete-title">${item.title}</div>
+              <div class="autocomplete-author">${item.author}</div>
+            </div>
+          `;
+          d.addEventListener('click', () => {
+            autocompleteInp.value = item.title;
+            autocompleteList.innerHTML = '';
+            // 검색 자동실행(제목 자동입력)
+            searchMultiPlatformBooks();
+          });
+          autocompleteList.appendChild(d);
+        });
+      } catch {}
     });
-  })();
 
-  // 7) 버튼 이벤트 연결
-  searchBtn.addEventListener('click', searchBooks);
-  document.getElementById('bookTitle')
-    .addEventListener('keydown', e => {
+    autocompleteInp.addEventListener('keydown', (e) => {
+      const items = autocompleteList.querySelectorAll('.autocomplete-item');
       if (e.key === 'Enter') {
         e.preventDefault();
-        searchBooks();
+        if (items[autocompleteFocus]) {
+          const selectedTitle = items[autocompleteFocus].querySelector('.autocomplete-title').textContent;
+          autocompleteInp.value = selectedTitle;
+          autocompleteList.innerHTML = '';
+          searchMultiPlatformBooks();
+        } else if (autocompleteInp.value.trim()) {
+          autocompleteList.innerHTML = '';
+          searchMultiPlatformBooks();
+        }
+      } else if (e.key === 'ArrowDown') {
+        autocompleteFocus = (autocompleteFocus + 1) % items.length;
+        activateAutocomplete(items, autocompleteFocus);
+      } else if (e.key === 'ArrowUp') {
+        autocompleteFocus = (autocompleteFocus - 1 + items.length) % items.length;
+        activateAutocomplete(items, autocompleteFocus);
       }
-      const btnReset = document.getElementById('btnReset');
-btnReset.addEventListener('click', () => {
-  // 페이지를 완전히 다시 로드해서 초기 상태로 되돌립니다
-  location.reload();
-});  
     });
-    selectAllBtn.addEventListener('click',    () => document.querySelectorAll('#platformList input').forEach(cb => cb.checked = true));
-    deselectAllBtn.addEventListener('click',  () => document.querySelectorAll('#platformList input').forEach(cb => cb.checked = false));
-    selectResultsBtn.addEventListener('click',() => checkboxes.forEach(cb => cb.checked = true));
-    deselectResultsBtn.addEventListener('click', () => checkboxes.forEach(cb => cb.checked = false));
-    openSelectedBtn.addEventListener('click', () => checkboxes.forEach(cb => cb.checked && window.open(cb.dataset.url, '_blank')));
+    function activateAutocomplete(its, i) {
+      Array.from(its).forEach(it => it.classList.remove('autocomplete-active'));
+      its[i]?.classList.add('autocomplete-active');
+      its[i]?.scrollIntoView({ block: 'nearest' });
+    }
+    document.addEventListener('click', (e) => {
+      if (e.target !== autocompleteInp) autocompleteList.innerHTML = '';
+    });
+
+    // 검색타입 변경시 placeholder 변경
+    document.getElementById('searchTypeSelect').addEventListener('change', function() {
+      if (this.value === 'author') autocompleteInp.placeholder = '작가 이름을 입력하세요';
+      else if (this.value === 'title') autocompleteInp.placeholder = '책 제목을 입력하세요';
+      else autocompleteInp.placeholder = '도서명 또는 저자명을 입력하세요...';
+    });
   </script>
 </body>
 </html>
